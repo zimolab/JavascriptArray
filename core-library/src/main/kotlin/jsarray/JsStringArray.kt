@@ -28,76 +28,34 @@ import javafx.scene.web.WebEngine
 import jsarray.base.*
 import netscape.javascript.JSObject
 
-open class StringJsArray private constructor(override val reference: JSObject) : JsArrayInterface<String?> {
+open class JsStringArray private constructor(reference: JSObject) : BaseJsArray<String?>(reference) {
 
     companion object {
-        fun from(reference: JSObject): StringJsArray {
+        fun from(reference: JSObject): JsStringArray {
             if (!JsArrayInterface.isJsArray(reference)) {
                 throw RuntimeException("the reference is point to an javascript Array object.")
             }
-            return StringJsArray(reference)
+            return JsStringArray(reference)
         }
 
-        fun newInstance(env: JSObject, initLength: Int = 0): StringJsArray {
+        fun newInstance(env: JSObject, initLength: Int = 0): JsStringArray {
             val result = env.execute("new Array($initLength)")
             if (result is JSObject) {
                 return from(result)
             } else {
-                throw RuntimeException("Cannot create an Array object in given JavaScript env.")
+                throw RuntimeException("cannot create an Array object in given JavaScript env.")
             }
         }
 
-        fun newInstance(env: WebEngine, initLength: Int = 0): StringJsArray {
+        fun newInstance(env: WebEngine, initLength: Int = 0): JsStringArray {
             val a = env.execute("new Array($initLength)")
             if (a is JSObject) {
                 return from(a)
             } else {
-                throw RuntimeException("Cannot create an Array object in given JavaScript env.")
+                throw RuntimeException("cannot create an Array object in given JavaScript env.")
             }
         }
     }
-
-    private inline fun <reified M, R> with(
-        nameInJs: String,
-        callback: JsArrayIteratorCallback<M, R>,
-        execution: (method: String) -> Any?
-    ): Any? {
-        reference.inject(nameInJs, callback)
-        val result = execution("this.${nameInJs}.call")
-        reference.uninject(nameInJs)
-        if (result is Throwable) {
-            throw JsArrayExecutionError("fail to execute JavaScript expression.")
-        }
-        return result
-    }
-
-    private inline fun <reified T> with(
-        nameInJs: String,
-        callback: JsArraySortFunction<T>,
-        execution: (method: String) -> Any?
-    ): Any? {
-        reference.inject(nameInJs, callback)
-        val result = execution("this.${nameInJs}.compare")
-        reference.uninject(nameInJs)
-        if (result is Throwable) {
-            throw JsArrayExecutionError("fail to execute JavaScript expression.")
-        }
-        return result
-    }
-
-    private fun invoke(method: String, vararg args: Any?): Any? {
-        return reference.invoke(method, *args)
-    }
-
-    private fun execute(jsExp: String): Any? {
-        return reference.execute(jsExp)
-    }
-
-    override val length: Int
-        get() {
-            return execute("this.$LENGTH") as Int
-        }
-
 
     override fun set(index: Int, value: String?) {
         reference.setSlot(index, value)
@@ -139,7 +97,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         }
     }
 
-    override fun forEach(callback: JsArrayIteratorCallback<String?, Unit>) {
+    override fun forEach(callback: IteratorCallback<String?, Unit>) {
         this.with("__forEach_cb__", callback) { method ->
             execute("this.$FOR_EACH((item, index, arr)=>{ $method(item, index, null, arr); })")
         }
@@ -198,7 +156,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         }
     }
 
-    override fun find(callback: JsArrayIteratorCallback<String?, Boolean>): String? {
+    override fun find(callback: IteratorCallback<String?, Boolean>): String? {
         val result = with("__find_cb__", callback) { method: String ->
             execute("this.$FIND((item, index, arr)=>{ return $method(item, index, null, arr); })")
         }
@@ -207,7 +165,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $FIND() function.")
     }
 
-    override fun findIndex(callback: JsArrayIteratorCallback<String?, Boolean>): Int {
+    override fun findIndex(callback: IteratorCallback<String?, Boolean>): Int {
         val result = with("__find_index_cb__", callback) { method ->
             execute("this.$FIND_INDEX((item, index, arr)=>{ return $method(item, index, null, arr); })")
         }
@@ -237,14 +195,14 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         }
     }
 
-    override fun forLoop(startIndex: Int, stopIndex: Int, step: Int, callback: JsArrayIteratorCallback<String?, Boolean>) {
+    override fun forLoop(startIndex: Int, stopIndex: Int, step: Int, callback: IteratorCallback<String?, Boolean>) {
         this.with("__for_cb__", callback) { method ->
             val stop = if (stopIndex <= 0) length else stopIndex
             execute("for(let i=${startIndex}; i < ${stop}; i = i + $step){if(!$method(this[i], i, null, this)) break}")
         }
     }
 
-    override fun filter(callback: JsArrayIteratorCallback<String?, Boolean>): JsArrayInterface<String?> {
+    override fun filter(callback: IteratorCallback<String?, Boolean>): JsArrayInterface<String?> {
         val result = this.with("__filter_cb__", callback) { method ->
             execute("this.$FILTER((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
@@ -253,7 +211,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $FILTER() function.")
     }
 
-    override fun map(callback: JsArrayIteratorCallback<String?, String?>): JsArrayInterface<String?> {
+    override fun map(callback: IteratorCallback<String?, String?>): JsArrayInterface<String?> {
         val result = this.with("__map_cb__", callback) { method ->
             execute("this.$MAP((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
@@ -262,7 +220,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $MAP() function.")
     }
 
-    override fun every(callback: JsArrayIteratorCallback<String?, Boolean>): Boolean {
+    override fun every(callback: IteratorCallback<String?, Boolean>): Boolean {
         val result = this.with("__every_cb__", callback) { method ->
             execute("this.$EVERY((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
@@ -271,7 +229,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $EVERY() function.")
     }
 
-    override fun some(callback: JsArrayIteratorCallback<String?, Boolean>): Boolean {
+    override fun some(callback: IteratorCallback<String?, Boolean>): Boolean {
         val result = this.with("__some_cb__", callback) { method ->
             execute("this.$SOME((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
@@ -280,7 +238,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $SOME() function.")
     }
 
-    override fun reduce(callback: JsArrayIteratorCallback<String?, String?>): String? {
+    override fun reduce(callback: IteratorCallback<String?, String?>): String? {
         val result = this.with("__reduce_cb__", callback) { method ->
             execute("this.$REDUCE((total, item, index, arr)=>{ return $method(item, index, total, arr) })")
         }
@@ -289,7 +247,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $REDUCE() function.")
     }
 
-    override fun reduceRight(callback: JsArrayIteratorCallback<String?, String?>): String? {
+    override fun reduceRight(callback: IteratorCallback<String?, String?>): String? {
         val result = this.with("__right_reduce_cb__", callback) { method ->
             execute("this.$REDUCE_RIGHT((total, item, index, arr)=>{ return $method(item, index, total, arr) })")
         }
@@ -298,7 +256,7 @@ open class StringJsArray private constructor(override val reference: JSObject) :
         throw JsArrayExecutionError("failed to invoke $REDUCE_RIGHT() function.")
     }
 
-    override fun sort(sortFunction: JsArraySortFunction<String?>?): JsArrayInterface<String?> {
+    override fun sort(sortFunction: SortFunction<String?>?): JsArrayInterface<String?> {
         val result = if (sortFunction == null)
             invoke(SORT)
         else {
@@ -310,9 +268,4 @@ open class StringJsArray private constructor(override val reference: JSObject) :
             return this
         throw JsArrayExecutionError("failed to invoke $SORT() function.")
     }
-
-    override fun toString(): String {
-        return "[${join()}]"
-    }
-
 }

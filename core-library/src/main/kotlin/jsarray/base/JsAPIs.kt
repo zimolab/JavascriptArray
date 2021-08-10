@@ -1,6 +1,10 @@
 package jsarray.base
 
+import org.jetbrains.annotations.Nullable
+
 object JsAPIs {
+
+    const val UNDEFINED = "undefined"
 
     object Array {
         const val REVERSE = "reverse"

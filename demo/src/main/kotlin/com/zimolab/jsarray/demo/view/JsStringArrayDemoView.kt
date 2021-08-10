@@ -2,8 +2,8 @@ package com.zimolab.testifyfx.view
 
 import javafx.concurrent.Worker
 import javafx.scene.layout.VBox
-import jsarray.StringJsArray
-import jsarray.base.JsArraySortFunction
+import jsarray.JsStringArray
+import jsarray.base.SortFunction
 import jsarray.base.TypedIteratorCallback
 import jsarray.base.UnTypedIteratorCallback
 import jsarray.base.execute
@@ -11,7 +11,7 @@ import netscape.javascript.JSObject
 import tornadofx.*
 import java.util.*
 
-class MainView : View("JavascriptArray Demo") {
+class JsStringArrayDemoView : View("JsStringArray Demo") {
     override val root: VBox = vbox {
         webview {
             engine.loadWorker.stateProperty().addListener { observable, oldValue, newValue ->
@@ -19,7 +19,7 @@ class MainView : View("JavascriptArray Demo") {
                     val arr = engine.execute(" [\"1\", \"2\", \"3\", null, null, 5, undefined]")
                     val arr2 = engine.execute("['a', 'b', 'c', 'd']")
                     if (arr is JSObject) {
-                        val strArr = StringJsArray.from(arr)
+                        val strArr = JsStringArray.from(arr)
                         println("strArr.length: ${strArr.length}")
                         println("arr[3]: ${arr.getSlot(3)}")
                         println("strArr[3]: ${strArr[3]}")
@@ -36,7 +36,7 @@ class MainView : View("JavascriptArray Demo") {
                         strArr[5] = "5"
 
                         // concat() && toString()(join())
-                        val strArr2 = StringJsArray.from(arr2 as JSObject)
+                        val strArr2 = JsStringArray.from(arr2 as JSObject)
                         val strArr3 = strArr.concat(strArr2)
                         println(strArr3)
 
@@ -87,8 +87,8 @@ class MainView : View("JavascriptArray Demo") {
                         println(strArr3.includes("world!"))
 
                         // static newInstance() && fill()
-                        val strArr4 = StringJsArray.newInstance(engine, 3)
-                        val strArr5 = StringJsArray.newInstance(strArr3.reference, 5)
+                        val strArr4 = JsStringArray.newInstance(engine, 3)
+                        val strArr5 = JsStringArray.newInstance(strArr3.reference, 5)
                         strArr4.fill("hello", 0, null)
                         strArr5.fill("world", 0, 2)
                         println(strArr4)
@@ -150,8 +150,8 @@ class MainView : View("JavascriptArray Demo") {
                             }
                         }))
                         println("==========================")
-                        val strArr6 = StringJsArray.newInstance(engine, 10).fill("hello")
-                        val strArr7 = StringJsArray.newInstance(engine, 10).fill("hello")
+                        val strArr6 = JsStringArray.newInstance(engine, 10).fill("hello")
+                        val strArr7 = JsStringArray.newInstance(engine, 10).fill("hello")
                         strArr7[5] = null
                         println(strArr6.every(object : TypedIteratorCallback<String?, Boolean> {
                             override fun call(currentValue: String?, index: Int, total: String?, arr: Any?): Boolean {
@@ -190,7 +190,7 @@ class MainView : View("JavascriptArray Demo") {
                         println("=========================")
                         println(strArr3)
                         println(strArr3.sort())
-                        println(strArr3.sort(object : JsArraySortFunction<String?> {
+                        println(strArr3.sort(object : SortFunction<String?> {
                             override fun compare(a: String?, b: String?): Boolean {
                                 return a == null && b == null
                             }
