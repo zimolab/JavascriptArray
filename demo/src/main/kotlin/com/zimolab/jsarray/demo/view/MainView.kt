@@ -115,7 +115,7 @@ class MainView : View("JavascriptArray Demo") {
 //                    })
                         // 如果不想因为类型不符合的问题引发，则需要使用类型通用版本的迭代回调类对象（UnTypedIteratorCallback）
                         strArr.forEach(object : UnTypedIteratorCallback<Unit> {
-                            override fun call(currentValue: Any?, index: Int, total: Any?, arr: Any?): Unit {
+                            override fun call(currentValue: Any?, index: Int, total: Any?, arr: Any?) {
                                 println("index=$index, value=$currentValue")
                             }
 
