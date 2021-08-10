@@ -64,3 +64,71 @@ Javascript对象数组（即netscape.javascript.JSObject对象）
 
 ### 自定义
 除了上述内置的几种类型，还可以自行实现JsArrayInterface<T>接口，进行任意的类型映射。
+
+## 快速入门
+导入依赖
+```
+
+```
+
+1、创建对象（以JsIntArray为例）
+```kotlin
+// 从已有对象创建
+...
+val arrayInJs: JSObject = ...
+...
+// 在这一步前，可以调用JsInterface.isArray()判断arrayInJs是否为Array对象，防止抛出异常
+val jsIntArray = JsIntArray.from(arrayInJs)
+
+//或者是新建一个对象
+val jsIntArray = JsIntArray.newInstance(10)
+// 可以用fill填充，防止空值
+jsIntArray.fill(0)
+```
+
+2、按照需要调用接口
+```kotlin
+// 创建成功后就可以调用各种api了，和js中的用法基本一致
+// 例如
+// join()
+println(jsIntArray.join(";"))
+// reverse()
+println(jsIntArray.reverse())
+// splice()
+print(jsIntArray.splice(0, 2, 100, 1001))
+    ...
+// 各迭代相关的函数也可以使用，需要借助IteratorCallback对象。以forEach()为例：
+// 使用TypedIteratorCallback
+jsIntArray.forEach(object : TypedIteratorCallback<Int?, Unit>{
+    override fun call(currentValue: Int?, index: Int, total: Int?, arr: Any?) {
+        println("jsIntArray[$index] = $currentValue")
+    }
+})
+// 使用UnTypedIteratorCallback
+jsIntArray.forEach(object : UnTypedIteratorCallback<Unit>{
+    override fun call(currentValue: Any?, index: Int, total: Any?, arr: Any?) {
+        println("jsIntArray[$index] = $currentValue")
+    }
+})
+// 其他函数，如map()、filter()、every()等以此类推
+
+// 又比如，reduce()、reduceRight()的基本使用如下（简单的数值累加的例子）
+jsIntArray.reduce(object : TypedIteratorCallback<Int?, Int>{
+    override fun call(currentValue: Int?, index: Int, total: Int?, arr: Any?): Int {
+        if(currentValue is Int)
+            return currentValue + total!!
+        return total!!
+    }
+})
+
+    ...
+// 除了Array对象的原生接口，还封装了Js中原生的for循环，可以设置初值、终值、步进，并且通过回调函数的返回值控制是否跳出循环
+jsIntArray.forLoop(step = 2, callback = object : UnTypedIteratorCallback<Boolean>{
+    override fun call(currentValue: Any?, index: Int, total: Any?, arr: Any?): Boolean {
+        if (currentValue == null)
+            return false // break
+        println("jsIntArray[$index]=$currentValue")
+        return true
+    }
+})
+```

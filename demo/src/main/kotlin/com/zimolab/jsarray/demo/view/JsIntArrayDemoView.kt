@@ -45,6 +45,15 @@ class JsIntArrayDemoView : View("JsIntArray Demo") {
                         }
 
                     })
+                    println()
+                    val result = intArr2.reduce(object : TypedIteratorCallback<Int?, Int>{
+                        override fun call(currentValue: Int?, index: Int, total: Int?, arr: Any?): Int {
+                            if(currentValue is Int)
+                                return currentValue + total!!
+                            return total!!
+                        }
+                    })
+                    println("intArr2: sum = $result")
                 }
             }
 
