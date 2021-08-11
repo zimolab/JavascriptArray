@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     java
     `java-library`
+    `maven-publish`
 }
 
 group = "com.zimolab"

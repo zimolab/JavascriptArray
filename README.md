@@ -1,4 +1,4 @@
-# 项目说明
+# 项目说明 [![](https://jitpack.io/v/zimolab/JavascriptArray.svg)](https://jitpack.io/#zimolab/JavascriptArray)
 一个将JavaScript中的Array对象映射为Kotlin（java）对象的库。该项目基于netscape.javascript.JSObject对象，映射了Javascript Array对象的大部分接口，
 适用于使用WebEngine与底层Javascript代码进行交互的情景。
 
