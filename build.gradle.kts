@@ -6,14 +6,10 @@ plugins {
 }
 
 group = "com.github.zimolab"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
-}
-
-tasks.getByName<Test>("test") {
-    useJUnitPlatform()
 }
 
 subprojects {
