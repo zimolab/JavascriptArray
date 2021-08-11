@@ -1,55 +1,122 @@
-package jsarray
+package com.zimolab.jsarray.base
 
+import com.zimolab.jsarray.base.JsAPIs.UNDEFINED
 import javafx.scene.web.WebEngine
-import jsarray.base.*
-import jsarray.base.JsAPIs.UNDEFINED
 import netscape.javascript.JSObject
 
-class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(reference) {
+@Suppress("UNCHECKED_CAST")
+class JsArray<T>
+private constructor(
+    override val reference: JSObject,
+    private val undefineAsNull: Boolean = true) : JsArrayInterface<T>{
 
-    companion object {
-        fun from(reference: JSObject): JsIntArray {
-            if (!JsArrayInterface.isJsArray(reference)) {
-                throw RuntimeException("the reference is point to an javascript Array object.")
-            }
-            return JsIntArray(reference)
-        }
-
-        fun newInstance(env: JSObject, initLength: Int = 0): JsIntArray {
-            val result = env.execute("new Array($initLength)")
-            if (result is JSObject) {
-                return from(result)
-            } else {
-                throw RuntimeException("cannot create an Array object in given JavaScript env.")
-            }
-        }
-
-        fun newInstance(env: WebEngine, initLength: Int = 0): JsIntArray {
-            val a = env.execute("new Array($initLength)")
-            if (a is JSObject) {
-                return from(a)
-            } else {
-                throw RuntimeException("cannot create an Array object in given JavaScript env.")
-            }
+    init {
+        if (!JsArrayInterface.isJsArray(reference)) {
+            throw IllegalArgumentException("the reference is point to an javascript Array object.")
         }
     }
 
-    override fun set(index: Int, value: Int?) {
+    companion object {
+        fun stringArrayOf(reference: JSObject): JsArray<String?> {
+            return JsArray(reference, false)
+        }
+
+        fun intArrayOf(reference: JSObject): JsArray<Int?> {
+            return JsArray(reference, true)
+        }
+
+        fun doubleArrayOf(reference: JSObject): JsArray<Double?> {
+            return JsArray(reference, true)
+        }
+
+        fun jsObjectArrayOf(reference: JSObject): JsArray<JSObject?> {
+            return JsArray(reference, true)
+        }
+
+        fun booleanArrayOf(reference: JSObject): JsArray<Boolean?> {
+            return JsArray(reference, true)
+        }
+
+        fun anyArrayOf(reference: JSObject): JsArray<Any?> {
+            return JsArray(reference, false)
+        }
+
+        fun newArray(env: WebEngine, initialSize: Int = 0): JSObject? {
+            val result = env.execute("new Array($initialSize)")
+            return if (result is JSObject && JsArrayInterface.isJsArray(result))
+                result
+            else
+                null
+        }
+
+        fun newArray(env: JSObject, initialSize: Int = 0): JSObject? {
+            val result = env.execute("new Array($initialSize)")
+            return if (result is JSObject && JsArrayInterface.isJsArray(result))
+                result
+            else
+                null
+        }
+    }
+
+    private fun <M, R> with(
+        nameInJs: String,
+        callback: JsArrayIteratorCallback<M, R>,
+        execution: (method: String) -> Any?
+    ): Any? {
+        reference.inject(nameInJs, callback)
+        val result = execution("this.${nameInJs}.call")
+        reference.uninject(nameInJs)
+        if (result is Throwable) {
+            throw JsArrayExecutionError("fail to execute JavaScript expression.")
+        }
+        return result
+    }
+
+    @Suppress("SameParameterValue")
+    private fun <R> with(
+        nameInJs: String,
+        callback: JsArraySortFunction<R>,
+        execution: (method: String) -> Any?
+    ): Any? {
+        reference.inject(nameInJs, callback)
+        val result = execution("this.${nameInJs}.compare")
+        reference.uninject(nameInJs)
+        if (result is Throwable) {
+            throw JsArrayExecutionError("fail to execute JavaScript expression.")
+        }
+        return result
+    }
+
+    private fun invoke(method: String, vararg args: Any?): Any? {
+        return reference.invoke(method, *args)
+    }
+
+    private fun execute(jsExp: String): Any? {
+        return reference.execute(jsExp)
+    }
+
+    override val length: Int
+        get() = execute("this.${JsAPIs.Array.LENGTH}") as Int
+
+    override fun toString(): String {
+        return "[${join()}]"
+    }
+
+    override operator fun set(index: Int, value: T?) {
         reference.setSlot(index, value)
     }
 
-    override fun get(index: Int): Int? {
-        return when (val value = reference.getSlot(index)) {
-            is Int? -> value
-            UNDEFINED -> null
-            else -> throw JsArrayValueTypeError("value at index $index is not null or Int.(index $index: $value)")
-        }
+    override operator fun get(index: Int): T? {
+        val result = reference.getSlot(index)
+        if (result == null || (undefineAsNull && result == UNDEFINED))
+            return null
+        return result as T
     }
 
-    override fun concat(other: JsArrayInterface<Int?>): JsArrayInterface<Int?> {
+    override fun concat(other: JsArrayInterface<T>): JsArrayInterface<T> {
         val result = invoke(JsAPIs.Array.CONCAT, other.reference)
         if (result is JSObject)
-            return from(result)
+            return JsArray(result, undefineAsNull)
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.CONCAT}() function.")
     }
 
@@ -60,7 +127,7 @@ class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(re
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.JOIN}() function.")
     }
 
-    override fun reverse(): JsArrayInterface<Int?> {
+    override fun reverse(): JsArrayInterface<T> {
         return if (invoke(JsAPIs.Array.REVERSE) is JSObject) {
             this
         } else {
@@ -68,55 +135,53 @@ class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(re
         }
     }
 
-    override fun pop(): Int? {
-        return when (val result = invoke(JsAPIs.Array.POP)) {
-            is Int? -> result
-            UNDEFINED -> null
-            else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.POP}() function.")
-        }
+    override fun pop(): T? {
+        val result = invoke(JsAPIs.Array.POP)
+        if (result == null || (undefineAsNull && result == UNDEFINED))
+            return null
+        return result as T
     }
 
-    override fun push(vararg elements: Int?): Int {
+    override fun push(vararg elements: T?): Int {
         return when (val result = invoke(JsAPIs.Array.PUSH, *elements)) {
             is Int -> result
             else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.PUSH}() function.")
         }
     }
 
-    override fun shift(): Int? {
-        return when (val result = invoke(JsAPIs.Array.SHIFT)) {
-            is Int? -> result
-            UNDEFINED -> null
-            else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.SHIFT}() function.")
-        }
+    override fun shift(): T? {
+        val result = invoke(JsAPIs.Array.SHIFT)
+        if (result == null || (undefineAsNull && result == UNDEFINED))
+            return null
+        return result as T
     }
 
-    override fun unshift(vararg elements: Int?): Int {
+    override fun unshift(vararg elements: T?): Int {
         return when (val result = invoke(JsAPIs.Array.UNSHIFT, *elements)) {
             is Int -> result
             else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.UNSHIFT}() function.")
         }
     }
 
-    override fun slice(start: Int, end: Int?): JsArrayInterface<Int?> {
+    override fun slice(start: Int, end: Int?): JsArrayInterface<T> {
         val result = if (end == null) {
             invoke(JsAPIs.Array.SLICE, start)
         } else {
-            invoke(JsAPIs.Array.SLICE, end)
+            invoke(JsAPIs.Array.SLICE, start, end)
         }
         if (result is JSObject)
-            return from(result)
+            return JsArray(result)
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.SLICE}() function.")
     }
 
-    override fun splice(index: Int, count: Int, vararg items: Int?): JsArrayInterface<Int?> {
+    override fun splice(index: Int, count: Int, vararg items: T?): JsArray<T> {
         return when (val result = invoke(JsAPIs.Array.SPLICE, index, count, *items)) {
-            is JSObject -> from(result)
+            is JSObject -> JsArray(result)
             else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.SPLICE}() function.")
         }
     }
 
-    override fun fill(value: Int?, start: Int, end: Int?): JsArrayInterface<Int?> {
+    override fun fill(value: T?, start: Int, end: Int?): JsArray<T> {
         val result = if (end == null) {
             invoke(JsAPIs.Array.FILL, value, start)
         } else {
@@ -129,18 +194,16 @@ class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(re
         }
     }
 
-    override fun find(callback: IteratorCallback<Int?, Boolean>): Int? {
+    override fun find(callback: JsArrayIteratorCallback<T?, Boolean>): T? {
         val result = with("__find_cb__", callback) { method: String ->
             execute("this.${JsAPIs.Array.FIND}((item, index, arr)=>{ return $method(item, index, null, arr); })")
         }
-        return when (result) {
-            is Int? -> result
-            UNDEFINED -> null
-            else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.FIND}() function.")
-        }
+        if (result == null || (undefineAsNull && result == UNDEFINED))
+            return null
+        return result as T
     }
 
-    override fun findIndex(callback: IteratorCallback<Int?, Boolean>): Int {
+    override fun findIndex(callback: JsArrayIteratorCallback<T, Boolean>): Int {
         val result = with("__find_index_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.FIND_INDEX}((item, index, arr)=>{ return $method(item, index, null, arr); })")
         }
@@ -149,59 +212,59 @@ class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(re
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.FIND_INDEX}() function.")
     }
 
-    override fun includes(element: Int?, start: Int): Boolean {
+    override fun includes(element: T?, start: Int): Boolean {
         return when (val result = invoke(JsAPIs.Array.INCLUDES, element, start)) {
             is Boolean -> result
             else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.INCLUDES}() function.")
         }
     }
 
-    override fun indexOf(element: Int?, start: Int): Int {
+    override fun indexOf(element: T?, start: Int): Int {
         return when (val result = invoke(JsAPIs.Array.INDEX_OF, element, start)) {
             is Int -> result
             else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.INDEX_OF}() function.")
         }
     }
 
-    override fun lastIndexOf(element: Int?, start: Int): Int {
+    override fun lastIndexOf(element: T?, start: Int): Int {
         return when (val result = invoke(JsAPIs.Array.LAST_INDEX_OF, element, start)) {
             is Int -> result
             else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.LAST_INDEX_OF}() function.")
         }
     }
 
-    override fun forLoop(startIndex: Int, stopIndex: Int, step: Int, callback: IteratorCallback<Int?, Boolean>) {
+    override fun forLoop(callback: JsArrayIteratorCallback<T?, Boolean>, startIndex: Int, stopIndex: Int, step: Int) {
         this.with("__for_cb__", callback) { method ->
             val stop = if (stopIndex <= 0) length else stopIndex
             execute("for(let i=${startIndex}; i < ${stop}; i = i + $step){if(!$method(this[i], i, null, this)) break}")
         }
     }
 
-    override fun forEach(callback: IteratorCallback<Int?, Unit>) {
+    override fun forEach(callback: JsArrayIteratorCallback<T?, Unit>) {
         this.with("__forEach_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.FOR_EACH}((item, index, arr)=>{ $method(item, index, null, arr); })")
         }
     }
 
-    override fun filter(callback: IteratorCallback<Int?, Boolean>): JsArrayInterface<Int?> {
+    override fun filter(callback: JsArrayIteratorCallback<T?, Boolean>): JsArray<T> {
         val result = this.with("__filter_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.FILTER}((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
         if (result is JSObject)
-            return from(result)
+            return JsArray(result)
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.FILTER}() function.")
     }
 
-    override fun map(callback: IteratorCallback<Int?, Int?>): JsArrayInterface<Int?> {
+    override fun map(callback: JsArrayIteratorCallback<T?, T?>): JsArray<T> {
         val result = this.with("__map_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.MAP}((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
         if (result is JSObject)
-            return from(result)
+            return JsArray(result)
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.MAP}() function.")
     }
 
-    override fun every(callback: IteratorCallback<Int?, Boolean>): Boolean {
+    override fun every(callback: JsArrayIteratorCallback<T?, Boolean>): Boolean {
         val result = this.with("__every_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.EVERY}((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
@@ -210,7 +273,7 @@ class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(re
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.EVERY}() function.")
     }
 
-    override fun some(callback: IteratorCallback<Int?, Boolean>): Boolean {
+    override fun some(callback: JsArrayIteratorCallback<T?, Boolean>): Boolean {
         val result = this.with("__some_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.SOME}((item, index, arr)=>{ return $method(item, index, null, arr) })")
         }
@@ -219,29 +282,25 @@ class JsIntArray private constructor(reference: JSObject) : BaseJsArray<Int?>(re
         throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.SOME}() function.")
     }
 
-    override fun reduce(callback: IteratorCallback<Int?, Int?>): Int? {
+    override fun <R> reduce(callback: JsArrayIteratorCallback<T?, R?>): R? {
         val result = this.with("__reduce_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.REDUCE}((total, item, index, arr)=>{ return $method(item, index, total, arr) })")
         }
-        return when (result) {
-            is Int? -> result
-            UNDEFINED -> null
-            else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.REDUCE}() function.")
-        }
+        if (result == null || (undefineAsNull && result == UNDEFINED))
+            return null
+        return result as R
     }
 
-    override fun reduceRight(callback: IteratorCallback<Int?, Int?>): Int? {
+    override fun <R> reduceRight(callback: JsArrayIteratorCallback<T?, R?>): R? {
         val result = this.with("__right_reduce_cb__", callback) { method ->
             execute("this.${JsAPIs.Array.REDUCE_RIGHT}((total, item, index, arr)=>{ return $method(item, index, total, arr) })")
         }
-        return when (result) {
-            is Int? -> result
-            UNDEFINED -> null
-            else -> throw JsArrayExecutionError("failed to invoke ${JsAPIs.Array.REDUCE_RIGHT}() function.")
-        }
+        if (result == null || (undefineAsNull && result == UNDEFINED))
+            return null
+        return result as R
     }
 
-    override fun sort(sortFunction: SortFunction<Int?>?): JsArrayInterface<Int?> {
+    override fun sort(sortFunction: JsArraySortFunction<T?>?): JsArray<T> {
         val result = if (sortFunction == null)
             invoke(JsAPIs.Array.SORT)
         else {

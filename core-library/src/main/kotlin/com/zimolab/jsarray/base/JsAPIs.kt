@@ -1,6 +1,4 @@
-package jsarray.base
-
-import org.jetbrains.annotations.Nullable
+package com.zimolab.jsarray.base
 
 object JsAPIs {
 

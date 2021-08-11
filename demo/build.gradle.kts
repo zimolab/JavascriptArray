@@ -13,7 +13,7 @@ repositories {
 }
 
 application {
-    mainClassName = "com.zimolab.jsarray.demo.MainKt"
+    mainClassName = "com.zimolab.com.zimolab.jsarray.demo.MainKt"
 }
 
 dependencies {

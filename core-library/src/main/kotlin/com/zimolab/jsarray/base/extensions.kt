@@ -1,4 +1,4 @@
-package jsarray.base
+package com.zimolab.jsarray.base
 
 import javafx.scene.web.WebEngine
 import netscape.javascript.JSException
