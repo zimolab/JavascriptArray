@@ -25,3 +25,14 @@ subprojects {
         testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     }
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "com.github.zimolab"
+            artifactId = "JavascriptArray"
+            version = "0.1.1-SNAPSHOT"
+            from(components["kotlin"])
+        }
+    }
+}
