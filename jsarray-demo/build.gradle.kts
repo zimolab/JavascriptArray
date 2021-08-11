@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-group = "com.zimolab"
+group = "com.github.zimolab"
 version = "0.1.0-SNAPSHOT"
 
 val tornadofx_version = "1.7.20"
