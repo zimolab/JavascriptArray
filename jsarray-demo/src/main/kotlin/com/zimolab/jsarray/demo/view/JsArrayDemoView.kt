@@ -163,6 +163,17 @@ class JsArrayDemoView : View("JsIntArray Demo") {
             }
         })
         println("jsArray2.reduceRight(): $r3")
+        println("测试sort()")
+        println("jsArray3：$jsArray3")
+        println("jsArray3.sort():${jsArray3.sort(
+            object : TypedSortFunction<Int?> {
+                override fun compare(a: Int?, b: Int?): Boolean {
+                    if (a != null && b != null)
+                        return a <= b
+                    return false
+                }
+            }
+        )}")
         println("================测试完毕====================")
         println()
 

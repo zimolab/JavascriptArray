@@ -1,3 +1,3 @@
 rootProject.name = "JavascriptArray"
-include("demo")
-include("core-library")
+include("jsarray-demo")
+include("jsarray-core-library")

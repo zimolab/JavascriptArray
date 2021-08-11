@@ -21,7 +21,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     implementation("no.tornado:tornadofx:$tornadofx_version")
-    implementation(project(":core-library"))
+    implementation(project(":jsarray-core-library"))
 
 }
 

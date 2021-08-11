@@ -1,5 +1,6 @@
 package com.zimolab.jsarray.base
 
+import com.zimolab.jsarray.*
 import com.zimolab.jsarray.base.JsAPIs.UNDEFINED
 import javafx.scene.web.WebEngine
 import netscape.javascript.JSObject
@@ -17,27 +18,27 @@ private constructor(
     }
 
     companion object {
-        fun stringArrayOf(reference: JSObject): JsArray<String?> {
+        fun stringArrayOf(reference: JSObject): JsStringArray {
             return JsArray(reference, false)
         }
 
-        fun intArrayOf(reference: JSObject): JsArray<Int?> {
+        fun intArrayOf(reference: JSObject): JsIntArray {
             return JsArray(reference, true)
         }
 
-        fun doubleArrayOf(reference: JSObject): JsArray<Double?> {
+        fun doubleArrayOf(reference: JSObject): JsDoubleArray {
             return JsArray(reference, true)
         }
 
-        fun jsObjectArrayOf(reference: JSObject): JsArray<JSObject?> {
+        fun jsObjectArrayOf(reference: JSObject): JsObjectArray {
             return JsArray(reference, true)
         }
 
-        fun booleanArrayOf(reference: JSObject): JsArray<Boolean?> {
+        fun booleanArrayOf(reference: JSObject): JsBooleanArray {
             return JsArray(reference, true)
         }
 
-        fun anyArrayOf(reference: JSObject): JsArray<Any?> {
+        fun anyArrayOf(reference: JSObject): JsAnyArray {
             return JsArray(reference, false)
         }
 
