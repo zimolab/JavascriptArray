@@ -1,4 +1,6 @@
-# 项目说明 [![](https://jitpack.io/v/zimolab/JavascriptArray.svg)](https://jitpack.io/#zimolab/JavascriptArray)
+# 项目说明 
+**！！注意！！（2021/8/13）：为了更好组织代码，本项目被拆分成两个独立的项目，其中jsarray-core-library模块被拆分为[js-array](https://github.com/zimolab/js-array) 项目，而jsarray-demo模块则被拆分为[js-array-demo](https://github.com/zimolab/js-array-demo) 项目。本项目现在被设置为Archive状态，不再接受提交。**
+
 一个将JavaScript中的Array对象映射为Kotlin（java）对象的库。该项目基于netscape.javascript.JSObject对象，映射了Javascript Array对象的大部分接口，
 适用于使用WebEngine与底层Javascript代码进行交互的情景。
 
